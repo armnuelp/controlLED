@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Zap, Mail, Lock, LogIn, UserPlus, Loader2 } from "lucide-react";
+import { Zap, Mail, Lock, LogIn, UserPlus, Loader2, CheckCircle } from "lucide-react";
 import { z } from "zod";
 
 const authSchema = z.object({
@@ -19,6 +19,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [showVerificationMessage, setShowVerificationMessage] = useState(false);
   
   const { user, loading, signIn, signUp } = useAuth();
   const navigate = useNavigate();
@@ -60,6 +61,8 @@ const Auth = () => {
         if (error) {
           if (error.message.includes("Invalid login credentials")) {
             toast.error("Invalid email or password");
+          } else if (error.message.includes("Email not confirmed")) {
+            toast.error("Please verify your email before logging in. Check your inbox.");
           } else {
             toast.error(error.message);
           }
@@ -76,8 +79,8 @@ const Auth = () => {
             toast.error(error.message);
           }
         } else {
-          toast.success("Account created successfully!");
-          navigate("/");
+          setShowVerificationMessage(true);
+          toast.success("Registration successful! Please check your email to verify your account.");
         }
       }
     } finally {
@@ -89,6 +92,59 @@ const Auth = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Show verification message after signup
+  if (showVerificationMessage) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        {/* Animated Background */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-accent/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
+        </div>
+
+        <div className="relative z-10 w-full max-w-md">
+          <div className="glass-card rounded-3xl p-8 animate-fade-in text-center">
+            <div className="flex justify-center mb-6">
+              <div className="h-20 w-20 rounded-full bg-gradient-to-br from-success to-success/60 flex items-center justify-center shadow-lg">
+                <CheckCircle className="h-10 w-10 text-success-foreground" />
+              </div>
+            </div>
+
+            <h1 className="text-2xl font-bold text-foreground mb-4">
+              Verify Your Email
+            </h1>
+            
+            <p className="text-muted-foreground mb-6">
+              We've sent a verification link to:
+            </p>
+            
+            <p className="text-primary font-semibold text-lg mb-6">
+              {email}
+            </p>
+            
+            <p className="text-muted-foreground text-sm mb-8">
+              Please check your inbox and click the verification link to activate your account. 
+              After verification, you can log in.
+            </p>
+
+            <Button
+              onClick={() => {
+                setShowVerificationMessage(false);
+                setIsLogin(true);
+                setEmail("");
+                setPassword("");
+              }}
+              className="w-full h-14 bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-2xl font-bold text-lg transition-all duration-300 hover:scale-105"
+            >
+              <LogIn className="h-5 w-5 mr-2" />
+              Go to Login
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -113,9 +169,15 @@ const Auth = () => {
           <h1 className="text-2xl font-bold text-center text-foreground mb-2">
             {isLogin ? "Welcome Back" : "Create Account"}
           </h1>
-          <p className="text-muted-foreground text-center mb-8">
+          <p className="text-muted-foreground text-center mb-2">
             {isLogin ? "Sign in to your ESP32 Control Panel" : "Register for ESP32 Control Panel"}
           </p>
+          
+          {!isLogin && (
+            <p className="text-warning text-center text-sm mb-6 p-2 rounded-lg bg-warning/10 border border-warning/20">
+              ⚠️ Email verification required. Only valid email addresses can register.
+            </p>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
@@ -187,6 +249,7 @@ const Auth = () => {
               onClick={() => {
                 setIsLogin(!isLogin);
                 setErrors({});
+                setShowVerificationMessage(false);
               }}
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
