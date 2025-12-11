@@ -34,7 +34,8 @@ interface Schedule {
 
 type DashboardMode = "compact" | "expanded" | "minimal";
 
-const V_SUPPLY = 220;
+const V_SUPPLYM = 244;
+const V_SUPPLYm = 172;
 
 const ESP32ControlPanel = () => {
   const { user, loading, signOut } = useAuth();
@@ -67,8 +68,9 @@ const ESP32ControlPanel = () => {
   // Calculate monitor values
   const calculateMonitor = (value: number) => {
     const duty = (value / 255) * 100;
-    const voltage = (duty / 100) * V_SUPPLY;
-    return { duty, voltage, pwm: value };
+    const voltageMajor = (duty / 100) * V_SUPPLYM;
+    const voltageMinor = (duty / 100) * V_SUPPLYm;
+    return { duty, voltageMajor, voltageMinor, pwm: value };
   };
 
   // Check if RGB is configured (at least one channel > 0)
@@ -528,7 +530,8 @@ const ESP32ControlPanel = () => {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-foreground">Signal Monitor</h2>
-                  <p className="text-sm text-muted-foreground">V<sub>sup</sub> = {V_SUPPLY} V</p>
+                  <p className="text-sm text-muted-foreground">V<sub>sup</sub> = {V_SUPPLYM} V</p>
+                  <p className="text-sm text-muted-foreground">V<sub>sup</sub> = {V_SUPPLYm} V</p>
                 </div>
               </div>
 
@@ -541,7 +544,7 @@ const ESP32ControlPanel = () => {
                   <div className="grid grid-cols-3 gap-2 text-xs">
                     <div className="text-center p-2 rounded-lg bg-background/50">
                       <div className="text-muted-foreground">Voltage</div>
-                      <div className="font-mono text-foreground">{redMonitor.voltage.toFixed(2)} V</div>
+                      <div className="font-mono text-foreground">{redMonitor.voltageMinor.toFixed(2)} V</div>
                     </div>
                     <div className="text-center p-2 rounded-lg bg-background/50">
                       <div className="text-muted-foreground">Duty</div>
@@ -562,7 +565,7 @@ const ESP32ControlPanel = () => {
                   <div className="grid grid-cols-3 gap-2 text-xs">
                     <div className="text-center p-2 rounded-lg bg-background/50">
                       <div className="text-muted-foreground">Voltage</div>
-                      <div className="font-mono text-foreground">{greenMonitor.voltage.toFixed(2)} V</div>
+                      <div className="font-mono text-foreground">{greenMonitor.voltageMajor.toFixed(2)} V</div>
                     </div>
                     <div className="text-center p-2 rounded-lg bg-background/50">
                       <div className="text-muted-foreground">Duty</div>
@@ -583,7 +586,7 @@ const ESP32ControlPanel = () => {
                   <div className="grid grid-cols-3 gap-2 text-xs">
                     <div className="text-center p-2 rounded-lg bg-background/50">
                       <div className="text-muted-foreground">Voltage</div>
-                      <div className="font-mono text-foreground">{blueMonitor.voltage.toFixed(2)} V</div>
+                      <div className="font-mono text-foreground">{blueMonitor.voltageMajor.toFixed(2)} V</div>
                     </div>
                     <div className="text-center p-2 rounded-lg bg-background/50">
                       <div className="text-muted-foreground">Duty</div>
