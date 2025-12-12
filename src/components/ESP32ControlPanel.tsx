@@ -37,6 +37,26 @@ type DashboardMode = "compact" | "expanded" | "minimal";
 const V_SUPPLYM = 244;
 const V_SUPPLYm = 172;
 
+// Color presets with RGB values
+const COLOR_PRESETS = [
+  // First row with labels
+  { label: "R", r: 255, g: 0, b: 0 },
+  { label: "G", r: 0, g: 255, b: 0 },
+  { label: "B", r: 0, g: 0, b: 255 },
+  { label: "W", r: 255, g: 255, b: 255 },
+  // Additional colors
+  { label: "", r: 255, g: 255, b: 0 },       // Kuning cerah
+  { label: "", r: 128, g: 0, b: 255 },       // Purple
+  { label: "", r: 0, g: 255, b: 255 },       // Cyan
+  { label: "", r: 255, g: 105, b: 180 },     // Pink
+  { label: "", r: 255, g: 193, b: 37 },      // Emas hangat
+  { label: "", r: 255, g: 165, b: 0 },       // Orange
+  { label: "", r: 230, g: 190, b: 255 },     // Lavender
+  { label: "", r: 64, g: 224, b: 208 },      // Turquoise
+  { label: "", r: 0, g: 206, b: 209 },       // Tosca
+  { label: "", r: 255, g: 218, b: 185 },     // Peach
+];
+
 const ESP32ControlPanel = () => {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
@@ -229,6 +249,18 @@ const ESP32ControlPanel = () => {
     // Update color picker if not triggered by picker
     if (colorPickerInstance.current && !isFromPicker.current) {
       colorPickerInstance.current.color.rgb = { r: newRgb.r, g: newRgb.g, b: newRgb.b };
+    }
+    
+    sendRGBCommand(newRgb);
+  };
+  
+  const handleColorPreset = (preset: typeof COLOR_PRESETS[0]) => {
+    const newRgb = { r: preset.r, g: preset.g, b: preset.b };
+    setRgb(newRgb);
+    
+    // Update color picker
+    if (colorPickerInstance.current) {
+      colorPickerInstance.current.color.rgb = newRgb;
     }
     
     sendRGBCommand(newRgb);
@@ -469,6 +501,30 @@ const ESP32ControlPanel = () => {
                   className="w-16 h-16 rounded-2xl border-2 border-border shadow-lg"
                   style={{ backgroundColor: `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})` }}
                 />
+              </div>
+
+              {/* Color Preset Buttons */}
+              <div className="mb-6">
+                <p className="text-sm text-muted-foreground mb-3 text-center">Quick Color Presets</p>
+                <div className="grid grid-cols-7 gap-2">
+                  {COLOR_PRESETS.map((preset, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleColorPreset(preset)}
+                      className="relative w-10 h-10 rounded-lg border-2 border-border hover:border-primary transition-all hover:scale-110 shadow-md"
+                      style={{ backgroundColor: `rgb(${preset.r}, ${preset.g}, ${preset.b})` }}
+                      title={`RGB(${preset.r}, ${preset.g}, ${preset.b})`}
+                    >
+                      {preset.label && (
+                        <span className={`absolute inset-0 flex items-center justify-center font-bold text-sm ${
+                          preset.label === 'W' ? 'text-black' : 'text-white'
+                        } drop-shadow-md`}>
+                          {preset.label}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* RGB Sliders */}
