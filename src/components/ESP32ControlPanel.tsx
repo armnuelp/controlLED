@@ -45,16 +45,16 @@ const COLOR_PRESETS = [
   { label: "B", r: 0, g: 0, b: 255 },
   { label: "W", r: 255, g: 255, b: 255 },
   // Additional colors
-  { label: "", r: 255, g: 255, b: 0 },       // Kuning cerah
-  { label: "", r: 128, g: 0, b: 255 },       // Purple
-  { label: "", r: 0, g: 255, b: 255 },       // Cyan
-  { label: "", r: 255, g: 105, b: 180 },     // Pink
-  { label: "", r: 255, g: 193, b: 37 },      // Emas hangat
-  { label: "", r: 255, g: 165, b: 0 },       // Orange
-  { label: "", r: 230, g: 190, b: 255 },     // Lavender
-  { label: "", r: 64, g: 224, b: 208 },      // Turquoise
-  { label: "", r: 0, g: 206, b: 209 },       // Tosca
-  { label: "", r: 255, g: 218, b: 185 },     // Peach
+  { label: "", r: 255, g: 229, b: 0 },       // Kuning cerah
+  { label: "", r: 204, g: 0, b: 255 },       // Purple
+  { label: "", r: 0, g: 178, b: 255 },       // Cyan
+  { label: "", r: 255, g: 51, b: 102 },     // Pink
+  { label: "", r: 255, g: 178, b: 25 },      // Emas hangat
+  { label: "", r: 255, g: 51, b: 0 },       // Orange
+  { label: "", r: 153, g: 102, b: 255 },     // Lavender
+  { label: "", r: 0, g: 229, b: 255 },      // Turquoise
+  { label: "", r: 51, g: 204, b: 76 },       // Tosca
+  { label: "", r: 255, g: 178, b: 76 },     // Peach
 ];
 
 const ESP32ControlPanel = () => {
