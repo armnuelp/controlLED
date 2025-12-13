@@ -35,23 +35,24 @@ type DashboardMode = "compact" | "expanded" | "minimal";
 
 // Color presets with RGB values
 const COLOR_PRESETS = [
-  // First row with labels
-  { label: "R", r: 255, g: 0, b: 0 },
-  { label: "G", r: 0, g: 255, b: 0 },
-  { label: "B", r: 0, g: 0, b: 255 },
-  { label: "W", r: 255, g: 255, b: 255 },
-
   // Additional colors
-  { label: "", r: 255, g: 229, b: 0 },   // Kuning cerah
-  { label: "", r: 204, g: 0, b: 255 },   // Purple
-  { label: "", r: 0, g: 178, b: 255 },   // Cyan
-  { label: "", r: 255, g: 51, b: 102 },  // Pink
-  { label: "", r: 255, g: 178, b: 25 },  // Emas hangat
-  { label: "", r: 255, g: 51, b: 0 },    // Orange
-  { label: "", r: 153, g: 102, b: 255 }, // Lavender
-  { label: "", r: 0, g: 229, b: 255 },   // Turquoise
-  { label: "", r: 51, g: 204, b: 76 },   // Tosca
-  { label: "", r: 255, g: 178, b: 76 },  // Peach
+  { label: "1", r: 255, g: 229, b: 0 },   // Kuning cerah
+  { label: "2", r: 204, g: 0, b: 255 },   // Purple
+  { label: "3", r: 0, g: 178, b: 255 },   // Cyan
+  { label: "4", r: 255, g: 51, b: 102 },  // Pink
+  { label: "5", r: 255, g: 178, b: 25 },  // Emas hangat
+  { label: "6", r: 255, g: 51, b: 0 },    // Orange
+  { label: "7", r: 153, g: 102, b: 255 }, // Lavender
+  { label: "8", r: 0, g: 229, b: 255 },   // Turquoise
+  { label: "9", r: 51, g: 204, b: 76 },   // Tosca
+  { label: "10", r: 255, g: 178, b: 76 },  // Peach
+
+  // main colors
+  { label: "11", r: 255, g: 255, b: 255 }, // White
+  { label: "12", r: 255, g: 0, b: 0 }, // Red
+  { label: "13", r: 0, g: 255, b: 0 }, // Green
+  { label: "14", r: 0, g: 0, b: 255 }, // Blue
+
 ];
 
 
