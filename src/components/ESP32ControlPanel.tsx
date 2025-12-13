@@ -474,7 +474,7 @@ const ESP32ControlPanel = () => {
                     >
                       {preset.label && (
                         <span className={`absolute inset-0 flex items-center justify-center font-bold text-sm ${
-                          preset.label === 'W' ? 'text-black' : 'text-white'
+                          preset.label === 'W' ? 'text-black' : 'text-black'
                         } drop-shadow-md`}>
                           {preset.label}
                         </span>
