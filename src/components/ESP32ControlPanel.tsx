@@ -7,7 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Slider } from "@/components/ui/slider";
+
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,8 +69,18 @@ const ESP32ControlPanel = () => {
   const [newScheduleType, setNewScheduleType] = useState<"ON" | "OFF">("ON");
   const [isLoadingSchedules, setIsLoadingSchedules] = useState(true);
   
-  // RGB State
+  // RGB State (base values before brightness)
   const [rgb, setRgb] = useState({ r: 0, g: 0, b: 0 });
+  const [brightness, setBrightness] = useState(100);
+
+  // Calculate final RGB values with brightness
+  const getFinalRgb = (baseRgb: { r: number; g: number; b: number }) => ({
+    r: Math.round((baseRgb.r * brightness) / 100),
+    g: Math.round((baseRgb.g * brightness) / 100),
+    b: Math.round((baseRgb.b * brightness) / 100),
+  });
+
+  const BRIGHTNESS_LEVELS = [25, 50, 75, 100];
 
   // MQTT Configuration
   const broker = "wss://73d4cffe19e94407ae5266f86d9731aa.s1.eu.hivemq.cloud:8884/mqtt";
@@ -182,19 +192,19 @@ const ESP32ControlPanel = () => {
     }
   }, [isDarkMode]);
 
-  const sendRGBCommand = (rgbValues: { r: number; g: number; b: number }) => {
+  const sendRGBCommand = (baseRgb: { r: number; g: number; b: number }, brightnessValue: number = brightness) => {
     if (client) {
-      const msg = `RGB,${rgbValues.r},${rgbValues.g},${rgbValues.b}`;
+      const finalRgb = {
+        r: Math.round((baseRgb.r * brightnessValue) / 100),
+        g: Math.round((baseRgb.g * brightnessValue) / 100),
+        b: Math.round((baseRgb.b * brightnessValue) / 100),
+      };
+      const msg = `RGB,${finalRgb.r},${finalRgb.g},${finalRgb.b}`;
       client.publish(topicRGB, msg);
       setStatus(`Sent: ${msg}`);
     }
   };
 
-  const handleSliderChange = (color: "r" | "g" | "b", value: number) => {
-    const newRgb = { ...rgb, [color]: value };
-    setRgb(newRgb);
-    sendRGBCommand(newRgb);
-  };
 
   const handleColorPreset = (preset: typeof COLOR_PRESETS[0]) => {
     const newRgb = { r: preset.r, g: preset.g, b: preset.b };
@@ -202,10 +212,15 @@ const ESP32ControlPanel = () => {
     sendRGBCommand(newRgb);
   };
 
+  const handleBrightnessChange = (level: number) => {
+    setBrightness(level);
+    sendRGBCommand(rgb, level);
+  };
+
   const handleTurnOff = () => {
     const offRgb = { r: 0, g: 0, b: 0 };
     setRgb(offRgb);
-    sendRGBCommand(offRgb);
+    sendRGBCommand(offRgb, brightness);
     toast.success("All lights turned OFF");
   };
 
@@ -249,17 +264,19 @@ const ESP32ControlPanel = () => {
 
       setSchedules([...schedules, newSchedule]);
       
-      // Send to ESP32 with RGB values (0,0,0 for OFF)
+      // Send to ESP32 with final RGB values (with brightness applied)
       const [hour, minute] = newScheduleTime.split(":");
-      const rgbValues = newScheduleType === "OFF" ? { r: 0, g: 0, b: 0 } : rgb;
-      const msg = `SCHEDULE,${newScheduleType},${hour},${minute},${rgbValues.r},${rgbValues.g},${rgbValues.b}`;
+      const finalRgbValues = newScheduleType === "OFF" 
+        ? { r: 0, g: 0, b: 0 } 
+        : getFinalRgb(rgb);
+      const msg = `SCHEDULE,${newScheduleType},${hour},${minute},${finalRgbValues.r},${finalRgbValues.g},${finalRgbValues.b}`;
       if (client) {
         client.publish(topicPub, msg);
       }
       
       const successMsg = newScheduleType === "OFF" 
         ? `Schedule added: ${newScheduleTime} - OFF`
-        : `Schedule added: ${newScheduleTime} - ON (RGB: ${rgb.r},${rgb.g},${rgb.b})`;
+        : `Schedule added: ${newScheduleTime} - ON (Final RGB: ${finalRgbValues.r},${finalRgbValues.g},${finalRgbValues.b})`;
       toast.success(successMsg);
       setNewScheduleTime("");
     } catch (error) {
@@ -478,59 +495,43 @@ const ESP32ControlPanel = () => {
                 </div>
               </div>
 
-              {/* RGB Sliders */}
-              <div className="space-y-4">
-                {/* Red Slider */}
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-red-500">Red</span>
-                    <span className="text-sm font-mono text-muted-foreground">
-                      Duty Cycle: {Math.round((rgb.r / 255) * 100)}%
-                    </span>
-                  </div>
-                  <Slider
-                    value={[rgb.r]}
-                    onValueChange={(value) => handleSliderChange("r", value[0])}
-                    max={255}
-                    step={1}
-                    className="[&_[role=slider]]:bg-red-500 [&_[role=slider]]:border-red-600 [&_.bg-primary]:bg-red-500"
-                  />
+              {/* Brightness Control */}
+              <div className="mt-6 p-4 rounded-xl bg-muted/30 border border-border/50">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium text-foreground flex items-center gap-2">
+                    <Sun className="h-4 w-4" />
+                    Brightness Level
+                  </span>
+                  <span className="text-sm font-mono text-primary font-bold">
+                    {brightness}%
+                  </span>
                 </div>
-
-                {/* Green Slider */}
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-green-500">Green</span>
-                    <span className="text-sm font-mono text-muted-foreground">
-                      Duty Cycle: {Math.round((rgb.g / 255) * 100)}%
-                    </span>
-                  </div>
-                  <Slider
-                    value={[rgb.g]}
-                    onValueChange={(value) => handleSliderChange("g", value[0])}
-                    max={255}
-                    step={1}
-                    className="[&_[role=slider]]:bg-green-500 [&_[role=slider]]:border-green-600 [&_.bg-primary]:bg-green-500"
-                  />
+                <div className="grid grid-cols-4 gap-2">
+                  {BRIGHTNESS_LEVELS.map((level) => (
+                    <Button
+                      key={level}
+                      variant={brightness === level ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handleBrightnessChange(level)}
+                      className={`h-10 font-bold transition-all ${
+                        brightness === level 
+                          ? "ring-2 ring-primary ring-offset-2 ring-offset-background" 
+                          : "hover:bg-primary/10"
+                      }`}
+                    >
+                      {level}%
+                    </Button>
+                  ))}
                 </div>
-
-                {/* Blue Slider */}
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-blue-500">Blue</span>
-                    <span className="text-sm font-mono text-muted-foreground">
-                      Duty Cycle: {Math.round((rgb.b / 255) * 100)}%
-                    </span>
-                  </div>
-                  <Slider
-                    value={[rgb.b]}
-                    onValueChange={(value) => handleSliderChange("b", value[0])}
-                    max={255}
-                    step={1}
-                    className="[&_[role=slider]]:bg-blue-500 [&_[role=slider]]:border-blue-600 [&_.bg-primary]:bg-blue-500"
-                  />
+                {/* Final RGB Display */}
+                <div className="mt-3 p-2 rounded-lg bg-background/50 text-xs text-muted-foreground">
+                  <span className="font-medium">Final Output:</span>{" "}
+                  <span className="font-mono">
+                    R:{getFinalRgb(rgb).r} G:{getFinalRgb(rgb).g} B:{getFinalRgb(rgb).b}
+                  </span>
                 </div>
               </div>
+
             </div>
 
             {/* Add Schedule Card */}
@@ -555,14 +556,21 @@ const ESP32ControlPanel = () => {
                     ? "bg-success/10 border-success/30 text-success" 
                     : "bg-warning/10 border-warning/30 text-warning"
               }`}>
-                <div className="flex items-center gap-2 text-sm">
-                  <Palette className="h-4 w-4" />
-                  {newScheduleType === "OFF"
-                    ? "Mode OFF: Warna tidak diperlukan (semua lampu mati)"
-                    : isRgbConfigured() 
-                      ? `Warna aktif: RGB(${rgb.r}, ${rgb.g}, ${rgb.b})`
-                      : "⚠️ Pilih warna RGB terlebih dahulu!"
-                  }
+                <div className="flex flex-col gap-1 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Palette className="h-4 w-4" />
+                    {newScheduleType === "OFF"
+                      ? "Mode OFF: Warna tidak diperlukan (semua lampu mati)"
+                      : isRgbConfigured() 
+                        ? `Base RGB(${rgb.r}, ${rgb.g}, ${rgb.b}) @ ${brightness}%`
+                        : "⚠️ Pilih warna RGB terlebih dahulu!"
+                    }
+                  </div>
+                  {newScheduleType !== "OFF" && isRgbConfigured() && (
+                    <div className="text-xs opacity-80 ml-6">
+                      Final: RGB({getFinalRgb(rgb).r}, {getFinalRgb(rgb).g}, {getFinalRgb(rgb).b})
+                    </div>
+                  )}
                 </div>
               </div>
 
