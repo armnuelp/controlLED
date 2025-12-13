@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Clock, Wifi, WifiOff, Zap, Calendar, Plus, Trash2, 
-  Sun, Moon, Activity, Timer, LogOut, Loader2, Palette, Gauge
+  Sun, Moon, Activity, Timer, LogOut, Loader2, Palette, Power
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,6 @@ import { supabase } from "@/integrations/supabase/client";
 declare global {
   interface Window {
     mqtt: any;
-    iro: any;
   }
 }
 
@@ -34,9 +33,6 @@ interface Schedule {
 
 type DashboardMode = "compact" | "expanded" | "minimal";
 
-const V_SUPPLYM = 244;
-const V_SUPPLYm = 172;
-
 // Color presets with RGB values
 const COLOR_PRESETS = [
   // First row with labels
@@ -45,24 +41,21 @@ const COLOR_PRESETS = [
   { label: "B", r: 0, g: 0, b: 255 },
   { label: "W", r: 255, g: 255, b: 255 },
   // Additional colors
-  { label: "", r: 255, g: 229, b: 0 },       // Kuning cerah
-  { label: "", r: 204, g: 0, b: 255 },       // Purple
-  { label: "", r: 0, g: 178, b: 255 },       // Cyan
-  { label: "", r: 255, g: 51, b: 102 },     // Pink
-  { label: "", r: 255, g: 178, b: 25 },      // Emas hangat
-  { label: "", r: 255, g: 51, b: 0 },       // Orange
-  { label: "", r: 153, g: 102, b: 255 },     // Lavender
-  { label: "", r: 0, g: 229, b: 255 },      // Turquoise
-  { label: "", r: 51, g: 204, b: 76 },       // Tosca
-  { label: "", r: 255, g: 178, b: 76 },     // Peach
+  { label: "", r: 255, g: 255, b: 0 },       // Kuning cerah
+  { label: "", r: 128, g: 0, b: 255 },       // Purple
+  { label: "", r: 0, g: 255, b: 255 },       // Cyan
+  { label: "", r: 255, g: 105, b: 180 },     // Pink
+  { label: "", r: 255, g: 193, b: 37 },      // Emas hangat
+  { label: "", r: 255, g: 165, b: 0 },       // Orange
+  { label: "", r: 230, g: 190, b: 255 },     // Lavender
+  { label: "", r: 64, g: 224, b: 208 },      // Turquoise
+  { label: "", r: 0, g: 206, b: 209 },       // Tosca
+  { label: "", r: 255, g: 218, b: 185 },     // Peach
 ];
 
 const ESP32ControlPanel = () => {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
-  const colorPickerRef = useRef<HTMLDivElement>(null);
-  const colorPickerInstance = useRef<any>(null);
-  const isFromPicker = useRef(false);
   
   const [isConnected, setIsConnected] = useState(false);
   const [status, setStatus] = useState("Connecting...");
@@ -84,14 +77,6 @@ const ESP32ControlPanel = () => {
   const topicSub = "esp32/status";
   const topicPub = "esp32/led";
   const topicRGB = "esp32/rgb";
-
-  // Calculate monitor values
-  const calculateMonitor = (value: number) => {
-    const duty = (value / 255) * 100;
-    const voltageMajor = (duty / 100) * V_SUPPLYM;
-    const voltageMinor = (duty / 100) * V_SUPPLYm;
-    return { duty, voltageMajor, voltageMinor, pwm: value };
-  };
 
   // Check if RGB is configured (at least one channel > 0)
   const isRgbConfigured = () => {
@@ -138,45 +123,6 @@ const ESP32ControlPanel = () => {
       setIsLoadingSchedules(false);
     }
   };
-
-  // Load iro.js color picker
-  useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/npm/@jaames/iro@5";
-    script.async = true;
-    script.onload = () => {
-      if (colorPickerRef.current && window.iro && !colorPickerInstance.current) {
-        colorPickerInstance.current = new window.iro.ColorPicker(colorPickerRef.current, {
-          width: 200,
-          color: { r: rgb.r, g: rgb.g, b: rgb.b },
-          borderWidth: 2,
-          borderColor: "#333",
-          layout: [
-            { component: window.iro.ui.Wheel }
-          ]
-        });
-
-        colorPickerInstance.current.on("color:change", (color: any) => {
-          isFromPicker.current = true;
-          const newRgb = {
-            r: Math.round(color.rgb.r),
-            g: Math.round(color.rgb.g),
-            b: Math.round(color.rgb.b)
-          };
-          setRgb(newRgb);
-          sendRGBCommand(newRgb);
-          isFromPicker.current = false;
-        });
-      }
-    };
-    document.body.appendChild(script);
-
-    return () => {
-      if (script.parentNode) {
-        script.parentNode.removeChild(script);
-      }
-    };
-  }, []);
 
   // MQTT Connection
   useEffect(() => {
@@ -245,25 +191,20 @@ const ESP32ControlPanel = () => {
   const handleSliderChange = (color: "r" | "g" | "b", value: number) => {
     const newRgb = { ...rgb, [color]: value };
     setRgb(newRgb);
-    
-    // Update color picker if not triggered by picker
-    if (colorPickerInstance.current && !isFromPicker.current) {
-      colorPickerInstance.current.color.rgb = { r: newRgb.r, g: newRgb.g, b: newRgb.b };
-    }
-    
     sendRGBCommand(newRgb);
   };
-  
+
   const handleColorPreset = (preset: typeof COLOR_PRESETS[0]) => {
     const newRgb = { r: preset.r, g: preset.g, b: preset.b };
     setRgb(newRgb);
-    
-    // Update color picker
-    if (colorPickerInstance.current) {
-      colorPickerInstance.current.color.rgb = newRgb;
-    }
-    
     sendRGBCommand(newRgb);
+  };
+
+  const handleTurnOff = () => {
+    const offRgb = { r: 0, g: 0, b: 0 };
+    setRgb(offRgb);
+    sendRGBCommand(offRgb);
+    toast.success("All lights turned OFF");
   };
 
   const addSchedule = async () => {
@@ -272,7 +213,8 @@ const ESP32ControlPanel = () => {
       return;
     }
 
-    if (!isRgbConfigured()) {
+    // Only require RGB configuration for ON schedules
+    if (newScheduleType === "ON" && !isRgbConfigured()) {
       toast.error("Konfigurasi warna RGB terlebih dahulu! (minimal satu channel > 0)");
       return;
     }
@@ -305,14 +247,18 @@ const ESP32ControlPanel = () => {
 
       setSchedules([...schedules, newSchedule]);
       
-      // Send to ESP32 with RGB values
+      // Send to ESP32 with RGB values (0,0,0 for OFF)
       const [hour, minute] = newScheduleTime.split(":");
-      const msg = `SCHEDULE,${newScheduleType},${hour},${minute},${rgb.r},${rgb.g},${rgb.b}`;
+      const rgbValues = newScheduleType === "OFF" ? { r: 0, g: 0, b: 0 } : rgb;
+      const msg = `SCHEDULE,${newScheduleType},${hour},${minute},${rgbValues.r},${rgbValues.g},${rgbValues.b}`;
       if (client) {
         client.publish(topicPub, msg);
       }
       
-      toast.success(`Schedule added: ${newScheduleTime} - ${newScheduleType} (RGB: ${rgb.r},${rgb.g},${rgb.b})`);
+      const successMsg = newScheduleType === "OFF" 
+        ? `Schedule added: ${newScheduleTime} - OFF`
+        : `Schedule added: ${newScheduleTime} - ON (RGB: ${rgb.r},${rgb.g},${rgb.b})`;
+      toast.success(successMsg);
       setNewScheduleTime("");
     } catch (error) {
       console.error("Error adding schedule:", error);
@@ -382,10 +328,6 @@ const ESP32ControlPanel = () => {
       </div>
     );
   }
-
-  const redMonitor = calculateMonitor(rgb.r);
-  const greenMonitor = calculateMonitor(rgb.g);
-  const blueMonitor = calculateMonitor(rgb.b);
 
   return (
     <div className="min-h-screen bg-background transition-colors duration-500">
@@ -486,13 +428,8 @@ const ESP32ControlPanel = () => {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-foreground">RGB PWM Controller</h2>
-                  <p className="text-sm text-muted-foreground">Color Wheel & Sliders</p>
+                  <p className="text-sm text-muted-foreground">Color Presets & Sliders</p>
                 </div>
-              </div>
-
-              {/* Color Picker */}
-              <div className="flex justify-center mb-6">
-                <div ref={colorPickerRef} id="colorWheel"></div>
               </div>
 
               {/* Current Color Preview */}
@@ -525,6 +462,18 @@ const ESP32ControlPanel = () => {
                     </button>
                   ))}
                 </div>
+
+                {/* OFF Button */}
+                <div className="mt-4">
+                  <Button
+                    onClick={handleTurnOff}
+                    variant="destructive"
+                    className="w-full h-12 rounded-xl font-bold text-lg transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <Power className="h-5 w-5 mr-2" />
+                    Turn OFF All Lights
+                  </Button>
+                </div>
               </div>
 
               {/* RGB Sliders */}
@@ -533,7 +482,9 @@ const ESP32ControlPanel = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium text-red-500">Red</span>
-                    <span className="text-sm font-mono text-muted-foreground">{rgb.r}</span>
+                    <span className="text-sm font-mono text-muted-foreground">
+                      Duty Cycle: {Math.round((rgb.r / 255) * 100)}%
+                    </span>
                   </div>
                   <Slider
                     value={[rgb.r]}
@@ -548,7 +499,9 @@ const ESP32ControlPanel = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium text-green-500">Green</span>
-                    <span className="text-sm font-mono text-muted-foreground">{rgb.g}</span>
+                    <span className="text-sm font-mono text-muted-foreground">
+                      Duty Cycle: {Math.round((rgb.g / 255) * 100)}%
+                    </span>
                   </div>
                   <Slider
                     value={[rgb.g]}
@@ -563,7 +516,9 @@ const ESP32ControlPanel = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium text-blue-500">Blue</span>
-                    <span className="text-sm font-mono text-muted-foreground">{rgb.b}</span>
+                    <span className="text-sm font-mono text-muted-foreground">
+                      Duty Cycle: {Math.round((rgb.b / 255) * 100)}%
+                    </span>
                   </div>
                   <Slider
                     value={[rgb.b]}
@@ -572,87 +527,6 @@ const ESP32ControlPanel = () => {
                     step={1}
                     className="[&_[role=slider]]:bg-blue-500 [&_[role=slider]]:border-blue-600 [&_.bg-primary]:bg-blue-500"
                   />
-                </div>
-              </div>
-            </div>
-
-            {/* Signal Monitor Card */}
-            <div className={`glass-card rounded-3xl p-6 animate-fade-in ${
-              dashboardMode === "compact" ? "col-span-2" : ""
-            }`} style={{ animationDelay: "0.15s" }}>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center shadow-lg">
-                  <Gauge className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-foreground">Signal Monitor</h2>
-                  <p className="text-sm text-muted-foreground">V<sub>sup</sub> = {V_SUPPLYM} V</p>
-                  <p className="text-sm text-muted-foreground">V<sub>sup</sub> = {V_SUPPLYm} V</p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                {/* Red Monitor */}
-                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-semibold text-red-500">Red Channel</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 text-xs">
-                    <div className="text-center p-2 rounded-lg bg-background/50">
-                      <div className="text-muted-foreground">Voltage</div>
-                      <div className="font-mono text-foreground">{redMonitor.voltageMinor.toFixed(2)} V</div>
-                    </div>
-                    <div className="text-center p-2 rounded-lg bg-background/50">
-                      <div className="text-muted-foreground">Duty</div>
-                      <div className="font-mono text-foreground">{redMonitor.duty.toFixed(1)}%</div>
-                    </div>
-                    <div className="text-center p-2 rounded-lg bg-background/50">
-                      <div className="text-muted-foreground">PWM</div>
-                      <div className="font-mono text-foreground">{redMonitor.pwm}</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Green Monitor */}
-                <div className="p-3 rounded-xl bg-green-500/10 border border-green-500/20">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-semibold text-green-500">Green Channel</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 text-xs">
-                    <div className="text-center p-2 rounded-lg bg-background/50">
-                      <div className="text-muted-foreground">Voltage</div>
-                      <div className="font-mono text-foreground">{greenMonitor.voltageMajor.toFixed(2)} V</div>
-                    </div>
-                    <div className="text-center p-2 rounded-lg bg-background/50">
-                      <div className="text-muted-foreground">Duty</div>
-                      <div className="font-mono text-foreground">{greenMonitor.duty.toFixed(1)}%</div>
-                    </div>
-                    <div className="text-center p-2 rounded-lg bg-background/50">
-                      <div className="text-muted-foreground">PWM</div>
-                      <div className="font-mono text-foreground">{greenMonitor.pwm}</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Blue Monitor */}
-                <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-semibold text-blue-500">Blue Channel</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 text-xs">
-                    <div className="text-center p-2 rounded-lg bg-background/50">
-                      <div className="text-muted-foreground">Voltage</div>
-                      <div className="font-mono text-foreground">{blueMonitor.voltageMajor.toFixed(2)} V</div>
-                    </div>
-                    <div className="text-center p-2 rounded-lg bg-background/50">
-                      <div className="text-muted-foreground">Duty</div>
-                      <div className="font-mono text-foreground">{blueMonitor.duty.toFixed(1)}%</div>
-                    </div>
-                    <div className="text-center p-2 rounded-lg bg-background/50">
-                      <div className="text-muted-foreground">PWM</div>
-                      <div className="font-mono text-foreground">{blueMonitor.pwm}</div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -673,15 +547,19 @@ const ESP32ControlPanel = () => {
 
               {/* RGB Status Indicator */}
               <div className={`mb-4 p-3 rounded-xl border ${
-                isRgbConfigured() 
-                  ? "bg-success/10 border-success/30 text-success" 
-                  : "bg-warning/10 border-warning/30 text-warning"
+                newScheduleType === "OFF"
+                  ? "bg-muted/50 border-border text-muted-foreground"
+                  : isRgbConfigured() 
+                    ? "bg-success/10 border-success/30 text-success" 
+                    : "bg-warning/10 border-warning/30 text-warning"
               }`}>
                 <div className="flex items-center gap-2 text-sm">
                   <Palette className="h-4 w-4" />
-                  {isRgbConfigured() 
-                    ? `Warna aktif: RGB(${rgb.r}, ${rgb.g}, ${rgb.b})`
-                    : "⚠️ Pilih warna RGB terlebih dahulu!"
+                  {newScheduleType === "OFF"
+                    ? "Mode OFF: Warna tidak diperlukan (semua lampu mati)"
+                    : isRgbConfigured() 
+                      ? `Warna aktif: RGB(${rgb.r}, ${rgb.g}, ${rgb.b})`
+                      : "⚠️ Pilih warna RGB terlebih dahulu!"
                   }
                 </div>
               </div>
@@ -724,15 +602,20 @@ const ESP32ControlPanel = () => {
 
                 <Button
                   onClick={addSchedule}
-                  disabled={!isRgbConfigured()}
-                  className={`w-full h-14 rounded-2xl font-bold text-lg transition-all transform hover:scale-[1.02] ${
-                    isRgbConfigured()
-                      ? "bg-primary hover:bg-primary/90 text-primary-foreground"
+                  disabled={newScheduleType === "ON" && !isRgbConfigured()}
+                  className={`w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl font-bold text-sm sm:text-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] ${
+                    newScheduleType === "OFF" || isRgbConfigured()
+                      ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
                       : "bg-muted text-muted-foreground cursor-not-allowed"
                   }`}
                 >
-                  <Plus className="h-5 w-5 mr-2" />
-                  Save Schedule (RGB: {rgb.r},{rgb.g},{rgb.b})
+                  <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" />
+                  <span className="truncate">
+                    {newScheduleType === "OFF" 
+                      ? "Save Schedule (OFF)" 
+                      : `Save Schedule (RGB: ${rgb.r},${rgb.g},${rgb.b})`
+                    }
+                  </span>
                 </Button>
               </div>
             </div>
