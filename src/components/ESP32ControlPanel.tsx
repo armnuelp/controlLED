@@ -84,7 +84,7 @@ const ESP32ControlPanel = () => {
   const BRIGHTNESS_LEVELS = [25, 50, 75, 100];
 
   // MQTT Configuration
-  const broker = "wss://73d4cffe19e94407ae5266f86d9731aa.s1.eu.hivemq.cloud:8884/mqtt";
+  const broker = "wss://421907ac38364ea6a9e2496b2a3f35a5.s1.eu.hivemq.cloud:8884/mqtt";
   const username = "web_client";
   const password = "Web@2025!123";
   const topicSub = "esp32/status";
