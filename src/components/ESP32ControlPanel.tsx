@@ -527,10 +527,10 @@ const ESP32ControlPanel = () => {
                 {/* Final RGB Display */}
                 <div className="mt-3 p-2 rounded-lg bg-background/50 text-muted-foreground">
                   <span className="text-sm font-bold">Final Output:</span>{" "}
-                  <span className="font-mono text-sm">
+                  <span className="font-mono text-sm font-bold">
                     R:{getFinalRgb(rgb).r} G:{getFinalRgb(rgb).g} B:{getFinalRgb(rgb).b}
                   </span>
-                  <div className = "text-sm">Brightness: {brightness}% </div>
+                  <div className = "text-sm font-bold">Brightness: {brightness}% </div>
                 </div>
               </div>
 
